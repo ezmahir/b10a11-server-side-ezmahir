@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -33,10 +33,19 @@ async function run() {
     const artifactsCollection = client
       .db("artifactsDB")
       .collection("artifacts");
+    const artifactsLikesCollection = client
+      .db("artifactsDB")
+      .collection("artifactLikes");
 
     app.get("/artifacts", async (req, res) => {
       const cursor = artifactsCollection.find();
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.post("/artifacts", async (req, res) => {
+      const newArtifact = req.body;
+      const result = await artifactsCollection.insertOne(newArtifact);
       res.send(result);
     });
 
@@ -46,6 +55,43 @@ async function run() {
       const result = await artifactsCollection.findOne(query);
       res.send(result);
     });
+
+    app.post("/artifactLikes", async (req, res) => {
+      const like = req.body;
+      const result = await artifactsLikesCollection.insertOne(like);
+      res.send(result);
+    });
+
+    app.get("/artifactLikes", async (req, res) => {
+      const email = req.query.email;
+      const query = { user_email: email };
+      const result = await artifactsLikesCollection.find(query).toArray();
+      for (const like1 of result) {
+        // console.log(like1.like_id);
+        const query1 = { _id: new ObjectId(like1.like_id) };
+        const like = await artifactsCollection.findOne(query1);
+        if (like) {
+          like1.artifact_image = like.artifact_image;
+          like1.like_count = like.like_count;
+          // console.log(like);
+        }
+      }
+      res.send(result);
+    });
+
+    // app.get("/artifactLikes/likes/:user_email", async (req, res) => {
+    //   const userEmail = req.params.user_email;
+    //   const query = { user_email: userEmail };
+    //   const result = await artifactsLikesCollection.find(query).toArray();
+    //   res.send(result);
+    // });
+
+    // app.get("/artifactLikes/likes/:like_id", async (req, res) => {
+    //   const likeId = req.params.like_id;
+    //   const query = { like_id: likeId };
+    //   const result = await artifactsLikesCollection.find(query).toArray();
+    //   res.send(result);
+    // });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
