@@ -49,6 +49,15 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/artifactLimited", async (req, res) => {
+      const cursor = artifactsCollection
+        .find()
+        .sort({ like_count: -1 })
+        .limit(6);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     app.get("/artifacts/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
